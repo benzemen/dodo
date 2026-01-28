@@ -1,6 +1,9 @@
 package com.example.dodo.Controller;
 
 
+import com.example.dodo.DTO.AuthResponse;
+import com.example.dodo.DTO.LoginRequest;
+import com.example.dodo.DTO.SignupRequest;
 import com.example.dodo.Entity.User;
 import com.example.dodo.Security.JwtUtil;
 import com.example.dodo.Services.UserService;
@@ -15,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/login")
+@RequestMapping("/auth")
 @Slf4j
 public class UserController {
 
@@ -25,45 +28,49 @@ public class UserController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
-    @PostMapping("/signup")
-    public ResponseEntity<?> SignUp(@RequestBody User user){
-        if(userService.existsByEmail(user.getUseremail())){
-            return ResponseEntity.badRequest().body("Email already exists");
+
+
+    public ResponseEntity<?> signUp(@RequestBody SignupRequest signupRequest) {
+
+        if (userService.existsByEmail(signupRequest.getEmail())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Email already exists");
         }
 
-        // encode karte hai password ko
+        // DTO -> Entity
+        User user = new User();
+        user.setUseremail(signupRequest.getEmail());
+        user.setPassword(
+                passwordEncoder.encode(signupRequest.getPassword())
+        );
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User savedUser=userService.saveUser(user);
-
-        // make the jwt token
-
+        User savedUser = userService.saveUser(user);
         String token = jwtUtil.generateToken(savedUser.getUseremail());
-        Map<String, String> response=new HashMap<>();
-        response.put("token",token);
-        response.put("message","User register succesfully");
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
+        response.put("message", "User registered successfully");
+
         return ResponseEntity.ok(response);
     }
+
+
     @PostMapping("/login")
-    public ResponseEntity<?> Login(@RequestBody User user) {
-        User existingUser = userService.findByEmail(user.getUseremail());
-        if (existingUser != null && passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
-            return ResponseEntity.ok("Login successful");
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
+        User user = userService.findByEmail(request.getEmail());
+
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(401).body("Invalid credentials");
         }
-        return ResponseEntity.status(401).body("Invalid credentials");
+
+        String token = jwtUtil.generateToken(user.getUseremail());
+
+        return ResponseEntity.ok(
+                new AuthResponse(token, "Login successful")
+        );
     }
-//    public ResponseEntity<?> Login(@RequestBody LoginRequest loginRequest){
-//        String useremail=loginRequest.getEmail();
-//        String password=loginRequest.getPassword();
-//
-//        User user=userService.findByEmail(useremail);
-//        if(user==null || !passwordEncoder.matches(password,user.getPassword())){
-//            return ResponseEntity.status(401).body("Wrong Password");
-//        }
-//
-//        String token=jwtUtil.generateToken(useremail);
-//
-//        return ResponseEntity.ok(new AuthResponse(token,"Login successfull"));
-//
-//    }
+
+
 }

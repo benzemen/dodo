@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,5 +27,10 @@ public class User {
     private String useremail;
 
     private String provider;
+
+    private Boolean onboardingCompleted = false;
+    private String displayName; // AI suggested / user chosen
+    private LocalDate anniversaryDate;
+
 
 }
